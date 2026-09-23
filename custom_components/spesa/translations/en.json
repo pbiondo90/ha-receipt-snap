@@ -1,0 +1,181 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Grocery spending",
+        "description": "This integration creates its archive in `/config/spesa` and registers the `/api/spesa/receipt` endpoint to receive receipts from your iPhone.\n\nA token dedicated to this single function will be generated automatically, to be sent in the `{header}` header. It is not a Home Assistant token: whoever holds it can only submit receipts, not control your home or read entity states.\n\n**The token will be shown in a persistent notification right after setup.** This token is shown only once: copy it into your Shortcut before dismissing the notification. If you lose it, you can generate a new one with `spesa.rigenera_token`; the previous token is revoked when the new one is activated."
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "mese_corrente": { "name": "Current month" },
+      "mese_precedente": { "name": "Previous month" },
+      "oggi": { "name": "Today" },
+      "ultimi_scontrini": { "name": "Recent receipts" },
+      "da_verificare": { "name": "Needs review" },
+      "dettaglio": { "name": "Receipt detail" }
+    },
+    "select": {
+      "scontrino": { "name": "Receipt" },
+      "articolo": { "name": "Item" },
+      "articolo_categoria": { "name": "Item category" }
+    },
+    "number": {
+      "articolo_prezzo": { "name": "Item price" },
+      "articolo_quantita": { "name": "Item quantity" }
+    },
+    "text": {
+      "articolo_nome": { "name": "Item name" }
+    },
+    "button": {
+      "inverti_inclusione": { "name": "Toggle inclusion" }
+    }
+  },
+  "services": {
+    "aggiorna_articolo": {
+      "name": "Update item",
+      "description": "Updates one or more fields of a receipt item. Totals, monthly spending and review reasons are recalculated automatically. The original receipt description (raw_name) cannot be modified and is always preserved.",
+      "fields": {
+        "receipt_id": {
+          "name": "Receipt",
+          "description": "Receipt identifier, found in the state of sensor.spesa_dettaglio or in the list from sensor.spesa_ultimi_scontrini."
+        },
+        "item_id": {
+          "name": "Item",
+          "description": "Item identifier within the receipt, as shown in the detail table (01, 02, 03...)."
+        },
+        "included": {
+          "name": "Counted in spending",
+          "description": "When off, the item stays on the receipt but stops counting towards grocery spending. The receipt's original total is unchanged."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Readable item name. Correcting it also clears the \"missing name\" flag if the name had been derived automatically."
+        },
+        "category": {
+          "name": "Category",
+          "description": "Item category. Choosing one also clears the \"unrecognised category\" flag."
+        },
+        "price": {
+          "name": "Line price",
+          "description": "Final price attributed to the line, already net of any discount. May be negative for returns or discount lines."
+        },
+        "quantity": {
+          "name": "Quantity",
+          "description": "Quantity purchased. Decimals allowed for items sold by weight (e.g. 0.352 for 352 grams)."
+        },
+        "unit_price": {
+          "name": "Unit price",
+          "description": "Price of a single unit BEFORE discount, when the receipt shows quantity times unit price and then a separate discount. Omit the field to leave the current value unchanged. To clear an existing value, use YAML mode and set `unit_price: null`."
+        },
+        "discount": {
+          "name": "Line discount",
+          "description": "Total discount applied to the line, when clearly identifiable on the receipt. Positive value. Omit the field to leave the current value unchanged. To clear an existing value, use YAML mode and set `discount: null`."
+        },
+        "notes": {
+          "name": "Notes",
+          "description": "Free-form note about the item."
+        },
+        "product_id": {
+          "name": "Product identifier",
+          "description": "Reserved for linking purchases of the same product in future and comparing prices over time. Currently unused in calculations."
+        }
+      }
+    },
+    "aggiorna_scontrino": {
+      "name": "Update receipt",
+      "description": "Updates a receipt's general data. Changing the date to a different month moves the receipt into that month's file with no data loss. The \"needs review\" state cannot be set directly: it is always recalculated from the data.",
+      "fields": {
+        "receipt_id": {
+          "name": "Receipt",
+          "description": "Identifier of the receipt to update."
+        },
+        "date": {
+          "name": "Date",
+          "description": "Purchase date in YYYY-MM-DD format. Changing month moves the receipt into the new month's archive."
+        },
+        "time": {
+          "name": "Time",
+          "description": "Purchase time in HH:MM format. Leave empty to remove it."
+        },
+        "store": {
+          "name": "Store",
+          "description": "Store name. Known spellings are normalised automatically (e.g. CONAD CITY becomes Conad)."
+        },
+        "receipt_total": {
+          "name": "Receipt total",
+          "description": "Total printed on the receipt. It remains the original figure: excluding items does not change it, and it is used for the consistency check against the sum of lines."
+        },
+        "notes": {
+          "name": "Notes",
+          "description": "Free-form note about the receipt."
+        },
+        "manual_review": {
+          "name": "Flag for manual review",
+          "description": "Turn on to mark the receipt for checking even when no automatic anomaly was found. Turning it off removes only this manual flag: anomalies detected by the system remain and clear only by correcting the data."
+        },
+        "dismiss_possible_duplicate": {
+          "name": "Checked, not a duplicate",
+          "description": "Turn on after reviewing a receipt flagged as a possible duplicate and concluding it is a distinct purchase. The link to the other receipt stays recorded as a reminder, but the flag disappears. If you later change date, store, total or items, the review is invalidated and the flag may return."
+        }
+      }
+    },
+    "elimina_articolo": {
+      "name": "Delete item",
+      "description": "PERMANENTLY removes an item from a receipt. To exclude it from spending while keeping the data, use \"Update item\" and turn off \"Counted in spending\" instead. The last remaining item cannot be deleted: delete the whole receipt in that case.",
+      "fields": {
+        "receipt_id": {
+          "name": "Receipt",
+          "description": "Receipt identifier."
+        },
+        "item_id": {
+          "name": "Item",
+          "description": "Identifier of the item to delete."
+        },
+        "conferma": {
+          "name": "Confirm deletion",
+          "description": "Required. The item is removed and the original receipt data will no longer be recoverable from the dashboard."
+        }
+      }
+    },
+    "elimina_scontrino": {
+      "name": "Delete receipt",
+      "description": "PERMANENTLY removes a receipt and all its items from the archive. Monthly totals are recalculated.",
+      "fields": {
+        "receipt_id": {
+          "name": "Receipt",
+          "description": "Identifier of the receipt to delete."
+        },
+        "conferma": {
+          "name": "Confirm deletion",
+          "description": "Required. The receipt is removed from the active archive and will no longer be recoverable from the dashboard. Internal safety copies or Home Assistant backups may still contain it."
+        }
+      }
+    },
+    "ricalcola": {
+      "name": "Reload archive",
+      "description": "Re-reads every archive file from disk, recalculates totals and statistics and re-checks data consistency. Use it after manually fixing a file in /config/spesa or after restoring data from a backup. Resolved issues clear their notifications. It does not remove an archive lock: use \"Unlock archive\" for that."
+    },
+    "rigenera_token": {
+      "name": "Regenerate endpoint token",
+      "description": "Generates a new token for submitting receipts from your iPhone. The new value is shown in a notification first; only once the action completes is it activated and the previous token revoked. If the notification cannot be created nothing changes and the current token stays valid. The new token is shown only once: copy it into your Shortcut before dismissing the notification.",
+      "fields": {
+        "conferma": {
+          "name": "Confirm regeneration",
+          "description": "Required. Afterwards your iPhone Shortcut must be updated with the new value, otherwise it will stop working."
+        }
+      }
+    },
+    "sblocca_archivio": {
+      "name": "Unlock archive",
+      "description": "Only for when the archive is read-only after an abnormal interruption. Without confirmation it runs a DIAGNOSIS: it re-checks every file and reports whether they are valid, changing nothing. With confirmation you DECLARE that you have personally verified the archive and accept its current contents as correct. This is not a repair: Home Assistant cannot know whether the data reflects the situation before or after the interrupted operation. If files turn out damaged or inconsistent, unlocking is refused even with confirmation on. Enable \"Respond with data\" to read the diagnosis result.",
+      "fields": {
+        "conferma": {
+          "name": "I accept the current state as correct",
+          "description": "Leave off for a plain diagnosis. Turn on only after checking the files in /config/spesa and the latest receipts in the dashboard, confirming they match what you expect."
+        }
+      }
+    }
+  }
+}

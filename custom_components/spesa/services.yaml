@@ -1,0 +1,192 @@
+# Servizi dell'integrazione Spesa alimentare.
+#
+# Solo informazioni STRUTTURALI: required, example, default, selector.
+# I testi visibili (name, description dell'azione e dei campi) vivono
+# esclusivamente in translations/it.json e translations/en.json, come
+# previsto dal formato corrente di Home Assistant.
+#
+# Sui campi "conferma" delle azioni distruttive: required: false riguarda
+# solo il form. Il selector constant invia il valore true quando
+# l'interruttore e' acceso e OMETTE il campo quando e' spento; lo schema
+# backend usa vol.Required("conferma"): True, quindi una chiamata senza
+# conferma viene rifiutata prima di raggiungere il manager.
+
+aggiorna_articolo:
+  fields:
+    receipt_id:
+      required: true
+      example: 20260921-conad-104522-a81f
+      selector:
+        text:
+    item_id:
+      required: true
+      example: "02"
+      selector:
+        text:
+    included:
+      required: false
+      selector:
+        boolean:
+    name:
+      required: false
+      example: Spaghetti Barilla n.5 500 g
+      selector:
+        text:
+    category:
+      required: false
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - Alimentari
+            - Bevande
+            - Casa
+            - Igiene personale
+            - Animali
+            - Farmacia
+            - Altro
+    price:
+      required: false
+      example: 2.58
+      selector:
+        number:
+          min: -10000
+          max: 10000
+          step: 0.01
+          mode: box
+          unit_of_measurement: "€"
+    quantity:
+      required: false
+      example: 2
+      selector:
+        number:
+          min: 0.001
+          max: 1000
+          step: 0.001
+          mode: box
+    unit_price:
+      required: false
+      example: 1.29
+      selector:
+        number:
+          min: -10000
+          max: 10000
+          step: 0.01
+          mode: box
+          unit_of_measurement: "€"
+    discount:
+      required: false
+      example: 0.5
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 0.01
+          mode: box
+          unit_of_measurement: "€"
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true
+    product_id:
+      required: false
+      selector:
+        text:
+
+aggiorna_scontrino:
+  fields:
+    receipt_id:
+      required: true
+      example: 20260921-conad-104522-a81f
+      selector:
+        text:
+    date:
+      required: false
+      example: "2026-09-21"
+      selector:
+        text:
+    time:
+      required: false
+      example: "10:45"
+      selector:
+        text:
+    store:
+      required: false
+      example: Conad
+      selector:
+        text:
+    receipt_total:
+      required: false
+      example: 47.82
+      selector:
+        number:
+          min: -10000
+          max: 10000
+          step: 0.01
+          mode: box
+          unit_of_measurement: "€"
+    notes:
+      required: false
+      selector:
+        text:
+          multiline: true
+    manual_review:
+      required: false
+      selector:
+        boolean:
+    dismiss_possible_duplicate:
+      required: false
+      selector:
+        boolean:
+
+elimina_articolo:
+  fields:
+    receipt_id:
+      required: true
+      example: 20260921-conad-104522-a81f
+      selector:
+        text:
+    item_id:
+      required: true
+      example: "02"
+      selector:
+        text:
+    conferma:
+      required: false
+      selector:
+        constant:
+          value: true
+
+elimina_scontrino:
+  fields:
+    receipt_id:
+      required: true
+      example: 20260921-conad-104522-a81f
+      selector:
+        text:
+    conferma:
+      required: false
+      selector:
+        constant:
+          value: true
+
+# Nessun parametro. Mapping vuoto esplicito: il loader dei service
+# description si aspetta un mapping di proprieta', non un valore nullo.
+ricalcola: {}
+
+rigenera_token:
+  fields:
+    conferma:
+      required: false
+      selector:
+        constant:
+          value: true
+
+sblocca_archivio:
+  fields:
+    conferma:
+      required: false
+      default: false
+      selector:
+        boolean:

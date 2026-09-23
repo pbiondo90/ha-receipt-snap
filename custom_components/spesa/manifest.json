@@ -1,0 +1,14 @@
+{
+  "domain": "spesa",
+  "name": "Spesa alimentare",
+  "version": "1.0.0",
+  "documentation": "https://github.com/pbiondo90/ha-receipt-snap",
+  "issue_tracker": "https://github.com/pbiondo90/ha-receipt-snap/issues",
+  "codeowners": ["@pbiondo90"],
+  "config_flow": true,
+  "dependencies": ["http"],
+  "requirements": [],
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "single_config_entry": true
+}

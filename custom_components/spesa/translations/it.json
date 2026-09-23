@@ -1,0 +1,181 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Spesa alimentare",
+        "description": "L'integrazione crea l'archivio in `/config/spesa` e registra l'endpoint `/api/spesa/receipt` per ricevere gli scontrini dall'iPhone.\n\nVerrà generato automaticamente un token dedicato a questa sola funzione, da usare nell'header `{header}`. Non è un token di Home Assistant: chi lo possiede può solo inviare scontrini, non controllare la casa né leggere lo stato delle entità.\n\n**Il token ti verrà mostrato in una notifica persistente subito dopo la creazione.** Questo token viene mostrato una sola volta: copialo nel Comando Rapido prima di chiudere la notifica. Se lo perdi puoi generarne uno nuovo con l'azione `spesa.rigenera_token`; il precedente verrà revocato quando il nuovo viene attivato."
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "mese_corrente": { "name": "Mese corrente" },
+      "mese_precedente": { "name": "Mese precedente" },
+      "oggi": { "name": "Oggi" },
+      "ultimi_scontrini": { "name": "Ultimi scontrini" },
+      "da_verificare": { "name": "Da verificare" },
+      "dettaglio": { "name": "Dettaglio scontrino" }
+    },
+    "select": {
+      "scontrino": { "name": "Scontrino" },
+      "articolo": { "name": "Articolo" },
+      "articolo_categoria": { "name": "Categoria articolo" }
+    },
+    "number": {
+      "articolo_prezzo": { "name": "Prezzo articolo" },
+      "articolo_quantita": { "name": "Quantità articolo" }
+    },
+    "text": {
+      "articolo_nome": { "name": "Nome articolo" }
+    },
+    "button": {
+      "inverti_inclusione": { "name": "Inverti inclusione" }
+    }
+  },
+  "services": {
+    "aggiorna_articolo": {
+      "name": "Aggiorna articolo",
+      "description": "Modifica uno o più campi di un articolo di uno scontrino. I totali, la spesa del mese e i motivi di verifica vengono ricalcolati automaticamente. La descrizione originale dello scontrino (raw_name) non è modificabile ed è sempre conservata.",
+      "fields": {
+        "receipt_id": {
+          "name": "Scontrino",
+          "description": "Identificativo dello scontrino. Lo trovi nello stato di sensor.spesa_dettaglio o nell'elenco di sensor.spesa_ultimi_scontrini."
+        },
+        "item_id": {
+          "name": "Articolo",
+          "description": "Identificativo dell'articolo all'interno dello scontrino, come appare nella tabella del dettaglio (01, 02, 03...)."
+        },
+        "included": {
+          "name": "Incluso nella spesa",
+          "description": "Se disattivato, l'articolo resta nello scontrino ma smette di contare nella spesa alimentare. Il totale originale dello scontrino non cambia."
+        },
+        "name": {
+          "name": "Nome",
+          "description": "Nome leggibile dell'articolo. Correggerlo risolve anche la segnalazione «nome mancante» se era stato ricavato automaticamente."
+        },
+        "category": {
+          "name": "Categoria",
+          "description": "Categoria dell'articolo. Sceglierne una risolve anche la segnalazione «categoria non riconosciuta»."
+        },
+        "price": {
+          "name": "Prezzo della riga",
+          "description": "Prezzo finale effettivamente attribuito alla riga, già al netto di eventuali sconti. Può essere negativo per resi o righe di sconto."
+        },
+        "quantity": {
+          "name": "Quantità",
+          "description": "Quantità acquistata. Ammette decimali per i prodotti a peso (esempio: 0.352 per 352 grammi)."
+        },
+        "unit_price": {
+          "name": "Prezzo unitario",
+          "description": "Prezzo di una singola unità PRIMA dello sconto, quando lo scontrino riporta quantità per prezzo unitario e poi uno sconto separato. Se non vuoi modificarlo, ometti il campo. Per rimuovere un valore già presente, usa la modalità YAML dell'azione e imposta `unit_price: null`."
+        },
+        "discount": {
+          "name": "Sconto della riga",
+          "description": "Sconto totale applicato alla riga, se chiaramente identificabile sullo scontrino. Valore positivo. Se non vuoi modificarlo, ometti il campo. Per rimuovere uno sconto già registrato, usa la modalità YAML dell'azione e imposta `discount: null`."
+        },
+        "notes": {
+          "name": "Note",
+          "description": "Annotazione libera sull'articolo."
+        },
+        "product_id": {
+          "name": "Identificativo prodotto",
+          "description": "Campo predisposto per collegare in futuro acquisti dello stesso prodotto e confrontarne il prezzo nel tempo. Oggi non viene usato per alcun calcolo."
+        }
+      }
+    },
+    "aggiorna_scontrino": {
+      "name": "Aggiorna scontrino",
+      "description": "Modifica i dati generali di uno scontrino. Se cambi la data in un mese diverso, lo scontrino viene spostato nel file di quel mese senza perdita di dati. Lo stato «da verificare» non è modificabile direttamente: viene sempre ricalcolato dai dati.",
+      "fields": {
+        "receipt_id": {
+          "name": "Scontrino",
+          "description": "Identificativo dello scontrino da modificare."
+        },
+        "date": {
+          "name": "Data",
+          "description": "Data dell'acquisto in formato AAAA-MM-GG. Cambiando mese, lo scontrino viene spostato nell'archivio del nuovo mese."
+        },
+        "time": {
+          "name": "Ora",
+          "description": "Ora dell'acquisto in formato HH:MM. Lascia vuoto per rimuoverla."
+        },
+        "store": {
+          "name": "Supermercato",
+          "description": "Nome del negozio. Le grafie note vengono uniformate automaticamente (esempio: CONAD CITY diventa Conad)."
+        },
+        "receipt_total": {
+          "name": "Totale dello scontrino",
+          "description": "Totale stampato sullo scontrino. Resta il dato originale: non viene modificato escludendo articoli, e serve al controllo di coerenza con la somma delle righe."
+        },
+        "notes": {
+          "name": "Note",
+          "description": "Annotazione libera sullo scontrino."
+        },
+        "manual_review": {
+          "name": "Segna da verificare manualmente",
+          "description": "Attivalo per marcare lo scontrino come da controllare anche quando non ci sono anomalie automatiche. Disattivandolo si rimuove solo questa segnalazione manuale: eventuali anomalie rilevate dal sistema restano e spariscono solo correggendo i dati."
+        },
+        "dismiss_possible_duplicate": {
+          "name": "Ho verificato, non è un duplicato",
+          "description": "Attivalo quando hai controllato uno scontrino segnalato come possibile duplicato e hai stabilito che si tratta di un acquisto distinto. Il collegamento all'altro scontrino resta registrato come promemoria, ma la segnalazione sparisce. Se in seguito modifichi data, negozio, totale o gli articoli, la verifica viene annullata e la segnalazione può ricomparire."
+        }
+      }
+    },
+    "elimina_articolo": {
+      "name": "Elimina articolo",
+      "description": "Rimuove DEFINITIVAMENTE un articolo da uno scontrino. Per escluderlo dalla spesa conservando il dato, usa invece «Aggiorna articolo» disattivando «Incluso nella spesa». Non è possibile eliminare l'ultimo articolo rimasto: in quel caso elimina l'intero scontrino.",
+      "fields": {
+        "receipt_id": {
+          "name": "Scontrino",
+          "description": "Identificativo dello scontrino."
+        },
+        "item_id": {
+          "name": "Articolo",
+          "description": "Identificativo dell'articolo da eliminare."
+        },
+        "conferma": {
+          "name": "Conferma eliminazione",
+          "description": "Obbligatorio. L'articolo viene rimosso e il dato originale dello scontrino non sarà più recuperabile dalla dashboard."
+        }
+      }
+    },
+    "elimina_scontrino": {
+      "name": "Elimina scontrino",
+      "description": "Rimuove DEFINITIVAMENTE uno scontrino e tutti i suoi articoli dall'archivio. I totali del mese vengono ricalcolati.",
+      "fields": {
+        "receipt_id": {
+          "name": "Scontrino",
+          "description": "Identificativo dello scontrino da eliminare."
+        },
+        "conferma": {
+          "name": "Conferma eliminazione",
+          "description": "Obbligatorio. Lo scontrino viene rimosso dall'archivio attivo e non sarà più recuperabile dalla dashboard. Copie di sicurezza interne o backup di Home Assistant possono ancora contenerlo."
+        }
+      }
+    },
+    "ricalcola": {
+      "name": "Ricalcola archivio",
+      "description": "Rilegge tutti i file dell'archivio dal disco, ricalcola totali e statistiche e ricontrolla la coerenza dei dati. Usalo dopo aver corretto manualmente un file in /config/spesa o dopo aver ripristinato dei dati da un backup. Se i problemi segnalati sono stati risolti, le relative notifiche spariscono. Non rimuove il blocco dell'archivio: per quello serve «Sblocca archivio»."
+    },
+    "rigenera_token": {
+      "name": "Rigenera il token dell'endpoint",
+      "description": "Genera un nuovo token per l'invio degli scontrini dall'iPhone. Il nuovo valore viene prima mostrato in una notifica; solo al completamento dell'azione viene attivato e il token precedente viene revocato. Se la notifica non può essere creata non cambia nulla e il token attuale resta valido. Il nuovo token viene mostrato una sola volta: copialo nel Comando Rapido prima di chiudere la notifica.",
+      "fields": {
+        "conferma": {
+          "name": "Conferma rigenerazione",
+          "description": "Obbligatorio. Al termine il Comando Rapido dell'iPhone andrà aggiornato con il nuovo valore, altrimenti smetterà di funzionare."
+        }
+      }
+    },
+    "sblocca_archivio": {
+      "name": "Sblocca archivio",
+      "description": "Da usare solo quando l'archivio è in sola lettura dopo un'interruzione anomala. Senza conferma esegue una DIAGNOSI: ricontrolla tutti i file e ti dice se sono validi, senza modificare nulla. Con la conferma DICHIARI che hai verificato personalmente l'archivio e ne accetti il contenuto attuale come corretto. Non è una riparazione: Home Assistant non può sapere se i dati rappresentino la situazione prima o dopo l'operazione interrotta. Se i file risultano danneggiati o incoerenti, lo sblocco viene rifiutato anche con la conferma attiva. Attiva «Rispondi con dati» per leggere l'esito della diagnosi.",
+      "fields": {
+        "conferma": {
+          "name": "Accetto lo stato attuale come corretto",
+          "description": "Lascialo disattivato per una semplice diagnosi. Attivalo solo dopo aver controllato i file in /config/spesa e gli ultimi scontrini in dashboard, verificando che corrispondano a quanto ti aspetti."
+        }
+      }
+    }
+  }
+}
